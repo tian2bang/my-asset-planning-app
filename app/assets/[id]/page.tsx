@@ -1,9 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAsset } from "@/lib/data/assets";
+import {
+  getAsset,
+  getNomineesForAsset,
+  getSnapshotsForRecord,
+} from "@/lib/data/assets";
 import { Badge, Card, ErrorNotice, formatMoney, statusTone } from "@/app/components/ui";
 import { retireAsset, reactivateAsset } from "@/lib/actions/assets";
+import { logValueChange } from "@/lib/actions/snapshots";
+import { createNominee } from "@/lib/actions/nominees";
 import { ConfirmSubmitButton } from "@/app/components/ConfirmSubmitButton";
+import { LogValueChangeForm } from "@/app/components/LogValueChangeForm";
+import { ValueHistoryList } from "@/app/components/ValueHistoryList";
+import { AddNomineeForm } from "@/app/components/AddNomineeForm";
+import { NomineesList } from "@/app/components/NomineesList";
 
 export default async function AssetDetailPage({
   params,
@@ -11,7 +21,11 @@ export default async function AssetDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const result = await getAsset(id);
+  const [result, snapshotsResult, nomineesResult] = await Promise.all([
+    getAsset(id),
+    getSnapshotsForRecord(id, "asset"),
+    getNomineesForAsset(id),
+  ]);
 
   if (!result.ok) {
     return <ErrorNotice message={`Could not load asset: ${result.message}`} />;
@@ -21,6 +35,8 @@ export default async function AssetDetailPage({
   const asset = result.data;
   const boundRetire = retireAsset.bind(null, asset.id);
   const boundReactivate = reactivateAsset.bind(null, asset.id);
+  const boundLogValueChange = logValueChange.bind(null, "asset", asset.id);
+  const boundCreateNominee = createNominee.bind(null, asset.id);
 
   return (
     <div className="space-y-6">
@@ -81,6 +97,30 @@ export default async function AssetDetailPage({
           </div>
         </dl>
       </Card>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold tracking-tight">Value History</h2>
+          <LogValueChangeForm action={boundLogValueChange} currency={asset.currency} />
+        </div>
+        {!snapshotsResult.ok ? (
+          <ErrorNotice message={`Could not load value history: ${snapshotsResult.message}`} />
+        ) : (
+          <ValueHistoryList snapshots={snapshotsResult.data} />
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold tracking-tight">Nominees</h2>
+          <AddNomineeForm action={boundCreateNominee} />
+        </div>
+        {!nomineesResult.ok ? (
+          <ErrorNotice message={`Could not load nominees: ${nomineesResult.message}`} />
+        ) : (
+          <NomineesList assetId={asset.id} nominees={nomineesResult.data} />
+        )}
+      </section>
     </div>
   );
 }

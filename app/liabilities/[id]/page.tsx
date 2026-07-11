@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLiability } from "@/lib/data/liabilities";
+import { getSnapshotsForRecord } from "@/lib/data/assets";
 import { Badge, Card, ErrorNotice, formatMoney, statusTone } from "@/app/components/ui";
 import { settleLiability, reactivateLiability } from "@/lib/actions/liabilities";
+import { logValueChange } from "@/lib/actions/snapshots";
 import { ConfirmSubmitButton } from "@/app/components/ConfirmSubmitButton";
+import { LogValueChangeForm } from "@/app/components/LogValueChangeForm";
+import { ValueHistoryList } from "@/app/components/ValueHistoryList";
 
 export default async function LiabilityDetailPage({
   params,
@@ -11,7 +15,10 @@ export default async function LiabilityDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const result = await getLiability(id);
+  const [result, snapshotsResult] = await Promise.all([
+    getLiability(id),
+    getSnapshotsForRecord(id, "liability"),
+  ]);
 
   if (!result.ok) {
     return <ErrorNotice message={`Could not load liability: ${result.message}`} />;
@@ -21,6 +28,7 @@ export default async function LiabilityDetailPage({
   const liability = result.data;
   const boundSettle = settleLiability.bind(null, liability.id);
   const boundReactivate = reactivateLiability.bind(null, liability.id);
+  const boundLogValueChange = logValueChange.bind(null, "liability", liability.id);
 
   return (
     <div className="space-y-6">
@@ -89,6 +97,18 @@ export default async function LiabilityDetailPage({
           </div>
         </dl>
       </Card>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold tracking-tight">Value History</h2>
+          <LogValueChangeForm action={boundLogValueChange} currency={liability.currency} />
+        </div>
+        {!snapshotsResult.ok ? (
+          <ErrorNotice message={`Could not load value history: ${snapshotsResult.message}`} />
+        ) : (
+          <ValueHistoryList snapshots={snapshotsResult.data} />
+        )}
+      </section>
     </div>
   );
 }
