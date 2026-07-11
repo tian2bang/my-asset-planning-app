@@ -18,7 +18,7 @@ export function BreakdownTable({
       {rows.length === 0 ? (
         <EmptyState title={emptyMessage} />
       ) : (
-        <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
           <table className="min-w-full divide-y divide-neutral-200 text-sm">
             <thead className="bg-neutral-50 text-left text-xs font-medium uppercase tracking-wide text-neutral-500">
               <tr>
