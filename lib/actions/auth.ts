@@ -21,9 +21,11 @@ export async function signUp(
   if ("error" in parsed) return { error: parsed.error };
 
   const supabase = await createClient();
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const { data, error } = await supabase.auth.signUp({
     email: parsed.email,
     password: parsed.password,
+    options: { emailRedirectTo: `${appUrl}/login` },
   });
 
   if (error) return { error: error.message };
