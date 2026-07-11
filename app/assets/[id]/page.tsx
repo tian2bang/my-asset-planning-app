@@ -4,16 +4,20 @@ import {
   getAsset,
   getNomineesForAsset,
   getSnapshotsForRecord,
+  getGuideForAsset,
 } from "@/lib/data/assets";
 import { Badge, Card, ErrorNotice, formatMoney, statusTone } from "@/app/components/ui";
 import { retireAsset, reactivateAsset } from "@/lib/actions/assets";
 import { logValueChange } from "@/lib/actions/snapshots";
 import { createNominee } from "@/lib/actions/nominees";
+import { markGuideReviewed, overrideGuide } from "@/lib/actions/guides";
 import { ConfirmSubmitButton } from "@/app/components/ConfirmSubmitButton";
 import { LogValueChangeForm } from "@/app/components/LogValueChangeForm";
 import { ValueHistoryList } from "@/app/components/ValueHistoryList";
 import { AddNomineeForm } from "@/app/components/AddNomineeForm";
 import { NomineesList } from "@/app/components/NomineesList";
+import { GuideCard } from "@/app/components/GuideCard";
+import { GenerateGuideButton } from "@/app/components/GenerateGuideButton";
 
 export default async function AssetDetailPage({
   params,
@@ -21,10 +25,11 @@ export default async function AssetDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [result, snapshotsResult, nomineesResult] = await Promise.all([
+  const [result, snapshotsResult, nomineesResult, guideResult] = await Promise.all([
     getAsset(id),
     getSnapshotsForRecord(id, "asset"),
     getNomineesForAsset(id),
+    getGuideForAsset(id),
   ]);
 
   if (!result.ok) {
@@ -119,6 +124,30 @@ export default async function AssetDetailPage({
           <ErrorNotice message={`Could not load nominees: ${nomineesResult.message}`} />
         ) : (
           <NomineesList assetId={asset.id} nominees={nomineesResult.data} />
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold tracking-tight">Beneficiary Access Guide</h2>
+        {!guideResult.ok ? (
+          <ErrorNotice message={`Could not load guide: ${guideResult.message}`} />
+        ) : guideResult.data ? (
+          <GuideCard
+            assetId={asset.id}
+            guide={guideResult.data}
+            markReviewedAction={markGuideReviewed.bind(null, asset.id, guideResult.data.id)}
+            overrideAction={overrideGuide.bind(null, asset.id, guideResult.data.id)}
+          />
+        ) : (
+          <div className="rounded-lg border border-dashed border-neutral-300 p-8 text-center">
+            <p className="text-sm text-neutral-600">
+              Generate a guide for your nominees — plain-language steps to access this
+              asset after you're gone.
+            </p>
+            <div className="mt-4 flex justify-center">
+              <GenerateGuideButton assetId={asset.id} />
+            </div>
+          </div>
         )}
       </section>
     </div>
