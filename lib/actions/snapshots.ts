@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { writeAuditLog } from "@/lib/actions/audit";
+import { requireUserId } from "@/lib/actions/require-user";
 import type { ActionState } from "@/lib/actions/assets";
 import type { RecordType } from "@/lib/types";
 
@@ -21,6 +22,13 @@ export async function logValueChange(
   }
 
   const supabase = await createClient();
+  let userId: string;
+  try {
+    userId = await requireUserId(supabase);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Not signed in." };
+  }
+
   const table = recordType === "asset" ? "assets" : "liabilities";
   const valueColumn = recordType === "asset" ? "current_value" : "outstanding_amount";
 
@@ -40,6 +48,7 @@ export async function logValueChange(
   const { error: insertError } = await supabase.from("value_snapshots").insert({
     record_id: recordId,
     record_type: recordType,
+    user_id: userId,
     previous_value,
     new_value,
     currency,

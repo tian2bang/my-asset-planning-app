@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { writeAuditLog } from "@/lib/actions/audit";
+import { requireUserId, AuthRequiredError } from "@/lib/actions/require-user";
 
 const MODEL = "gpt-4o";
 
@@ -14,6 +15,16 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient();
+
+  let userId: string;
+  try {
+    userId = await requireUserId(supabase);
+  } catch (err) {
+    if (err instanceof AuthRequiredError) {
+      return NextResponse.json({ error: err.message }, { status: 401 });
+    }
+    throw err;
+  }
 
   const { data: asset, error: assetError } = await supabase
     .from("assets")
@@ -117,6 +128,7 @@ export async function POST(request: Request) {
     .from("beneficiary_guides")
     .insert({
       asset_id: assetId,
+      user_id: userId,
       guide_text: guideText,
       guide_text_source: `openai-${MODEL}`,
       guide_text_confidence: confidence,

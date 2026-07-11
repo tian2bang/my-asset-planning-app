@@ -1,6 +1,13 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { signOut } from "@/lib/actions/auth";
 
-export function NavBar() {
+export async function NavBar() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <header className="border-b border-neutral-200 bg-white">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
@@ -17,6 +24,31 @@ export function NavBar() {
           <Link href="/liabilities" className="hover:text-neutral-900">
             Liabilities
           </Link>
+          {user ? (
+            <>
+              <span className="text-neutral-400">{user.email}</span>
+              <form action={signOut}>
+                <button
+                  type="submit"
+                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-neutral-700 hover:bg-neutral-100"
+                >
+                  Sign Out
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="hover:text-neutral-900">
+                Sign In
+              </Link>
+              <Link
+                href="/signup"
+                className="rounded-md bg-neutral-900 px-3 py-1.5 text-white hover:bg-neutral-700"
+              >
+                Sign Up
+              </Link>
+            </>
+          )}
         </nav>
       </div>
     </header>

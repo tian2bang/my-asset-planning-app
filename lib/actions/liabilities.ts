@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { writeAuditLog } from "@/lib/actions/audit";
 import { ValidationError } from "@/lib/actions/errors";
+import { requireUserId } from "@/lib/actions/require-user";
 import type { ActionState } from "@/lib/actions/assets";
 
 interface LiabilityFields {
@@ -71,9 +72,16 @@ export async function createLiability(
   }
 
   const supabase = await createClient();
+  let userId: string;
+  try {
+    userId = await requireUserId(supabase);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Not signed in." };
+  }
+
   const { data, error } = await supabase
     .from("liabilities")
-    .insert(fields)
+    .insert({ ...fields, user_id: userId })
     .select("id")
     .single();
 
@@ -105,6 +113,12 @@ export async function updateLiability(
   }
 
   const supabase = await createClient();
+  try {
+    await requireUserId(supabase);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Not signed in." };
+  }
+
   const { error } = await supabase.from("liabilities").update(fields).eq("id", id);
 
   if (error) {
@@ -125,6 +139,7 @@ export async function updateLiability(
 
 export async function settleLiability(id: string) {
   const supabase = await createClient();
+  await requireUserId(supabase);
   const { error } = await supabase
     .from("liabilities")
     .update({ status: "settled" })
@@ -146,6 +161,7 @@ export async function settleLiability(id: string) {
 
 export async function reactivateLiability(id: string) {
   const supabase = await createClient();
+  await requireUserId(supabase);
   const { error } = await supabase
     .from("liabilities")
     .update({ status: "active" })

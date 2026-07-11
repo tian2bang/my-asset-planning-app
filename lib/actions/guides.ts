@@ -3,10 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { writeAuditLog } from "@/lib/actions/audit";
+import { requireUserId } from "@/lib/actions/require-user";
 import type { ActionState } from "@/lib/actions/assets";
 
 export async function markGuideReviewed(assetId: string, guideId: string) {
   const supabase = await createClient();
+  await requireUserId(supabase);
   const { error } = await supabase
     .from("beneficiary_guides")
     .update({ guide_text_review_status: "approved" })
@@ -35,6 +37,12 @@ export async function overrideGuide(
   if (!guide_text) return { error: "Guide text cannot be empty." };
 
   const supabase = await createClient();
+  try {
+    await requireUserId(supabase);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Not signed in." };
+  }
+
   const { error } = await supabase
     .from("beneficiary_guides")
     .update({ guide_text, guide_text_review_status: "overridden" })

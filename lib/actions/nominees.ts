@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { writeAuditLog } from "@/lib/actions/audit";
+import { requireUserId } from "@/lib/actions/require-user";
 import type { ActionState } from "@/lib/actions/assets";
 
 export async function createNominee(
@@ -24,6 +25,12 @@ export async function createNominee(
   }
 
   const supabase = await createClient();
+  let userId: string;
+  try {
+    userId = await requireUserId(supabase);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Not signed in." };
+  }
 
   const { data: existing, error: existingError } = await supabase
     .from("nominees")
@@ -49,6 +56,7 @@ export async function createNominee(
     .from("nominees")
     .insert({
       asset_id: assetId,
+      user_id: userId,
       full_name,
       relationship,
       email: email || null,
@@ -76,6 +84,7 @@ export async function createNominee(
 
 export async function deleteNominee(assetId: string, nomineeId: string) {
   const supabase = await createClient();
+  await requireUserId(supabase);
   const { error } = await supabase.from("nominees").delete().eq("id", nomineeId);
 
   if (error) {

@@ -5,9 +5,11 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { writeAuditLog } from "@/lib/actions/audit";
 import { ValidationError } from "@/lib/actions/errors";
+import { requireUserId } from "@/lib/actions/require-user";
 
 export interface ActionState {
   error?: string;
+  message?: string;
 }
 
 interface AssetFields {
@@ -59,9 +61,16 @@ export async function createAsset(
   }
 
   const supabase = await createClient();
+  let userId: string;
+  try {
+    userId = await requireUserId(supabase);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Not signed in." };
+  }
+
   const { data, error } = await supabase
     .from("assets")
-    .insert(fields)
+    .insert({ ...fields, user_id: userId })
     .select("id")
     .single();
 
@@ -94,6 +103,12 @@ export async function updateAsset(
   }
 
   const supabase = await createClient();
+  try {
+    await requireUserId(supabase);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Not signed in." };
+  }
+
   const { error } = await supabase.from("assets").update(fields).eq("id", id);
 
   if (error) {
@@ -115,6 +130,7 @@ export async function updateAsset(
 
 export async function retireAsset(id: string) {
   const supabase = await createClient();
+  await requireUserId(supabase);
   const { error } = await supabase
     .from("assets")
     .update({ status: "retired" })
@@ -137,6 +153,7 @@ export async function retireAsset(id: string) {
 
 export async function reactivateAsset(id: string) {
   const supabase = await createClient();
+  await requireUserId(supabase);
   const { error } = await supabase
     .from("assets")
     .update({ status: "active" })

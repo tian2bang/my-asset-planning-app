@@ -60,6 +60,14 @@ export function ErrorNotice({ message }: { message: string }) {
   );
 }
 
+export function InfoNotice({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-700">
+      {message}
+    </div>
+  );
+}
+
 export function Card({
   children,
   className = "",
