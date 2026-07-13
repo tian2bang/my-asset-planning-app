@@ -12,12 +12,19 @@ export default function LoginPage() {
         </p>
       </div>
       <AuthForm action={signIn} submitLabel="Sign In" />
-      <p className="text-center text-sm text-neutral-500">
-        Don&apos;t have an account?{" "}
-        <Link href="/signup" className="font-medium text-neutral-900 hover:underline">
-          Sign up
-        </Link>
-      </p>
+      <div className="space-y-2 text-center text-sm text-neutral-500">
+        <p>
+          <Link href="/forgot-password" className="font-medium text-neutral-900 hover:underline">
+            Forgot your password?
+          </Link>
+        </p>
+        <p>
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="font-medium text-neutral-900 hover:underline">
+            Sign up
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

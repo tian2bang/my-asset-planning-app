@@ -58,6 +58,24 @@ export async function signIn(
   redirect("/");
 }
 
+export async function requestPasswordReset(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) return { error: "Email is required." };
+
+  const supabase = await createClient();
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${appUrl}/reset-password`,
+  });
+
+  return {
+    message: "If an account exists for that email, a password reset link has been sent.",
+  };
+}
+
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
